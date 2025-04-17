@@ -1,6 +1,0 @@
-streamlit
-pandas
-joblib
-faiss-cpu
-scikit-learn
-

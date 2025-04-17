@@ -1,29 +1,39 @@
 import streamlit as st
 import joblib
-import faiss
 import pandas as pd
+from sklearn.metrics.pairwise import cosine_similarity
 
-# Load the saved recommendation model (Pipeline)
-recommendation_system = joblib.load('recommendation_system_pipeline.joblib')
+# Load data & model
+df = pd.read_csv('movie_metadata.csv')
+tfidf = joblib.load('tfidf_vectorizer.pkl')
 
-# Set up the Streamlit interface
-st.title("Movie Recommendation System 🎥🍿")
-st.write("Enter a movie title or a similar text to get recommendations. 🤔")
+# Transform content column
+tfidf_matrix = tfidf.transform(df['content'])
 
-# User input field
-user_query = st.text_input("Enter your search query here 🔍:")
+# Streamlit UI
+st.title("🎥 Movie Recommendation System 🍿")
+st.write("Enter a movie description or keywords to get recommendations! ✨")
 
-if user_query:
-    # Call the recommendation system to get top recommendations based on the user query
-    top_recommendations = recommendation_system.recommend(user_query, top_n=5)
+# Input from user
+query = st.text_input("🔍 Enter your search:")
 
-    # Display the recommendations for the user
-    st.write("Here are the top recommendations based on your query: 🎬✨")
-    
-    # Load the movie metadata
-    df = pd.read_csv('movie_metadata.csv')
-    
-    # Display the recommended movies based on the indices returned from FAISS
-    for idx in top_recommendations[0]:
+if query:
+    # Transform query using the same vectorizer
+    query_vec = tfidf.transform([query])
+
+    # Calculate cosine similarity
+    similarity_scores = cosine_similarity(query_vec, tfidf_matrix).flatten()
+
+    # Get top 5 similar movie indices
+    top_indices = similarity_scores.argsort()[-5:][::-1]
+
+    st.subheader("📌 Top Recommendations:")
+    for idx in top_indices:
         movie = df.iloc[idx]
-        st.write(f"**{movie['name']}** ({movie['year']}) - Rating: {movie['rating']} ⭐ - Genre: {movie['genre']} 🎭")
+        st.markdown(f"""
+        **🎬 Name:** {movie['name']}  
+        **🎭 Genre:** {movie['genre']}  
+        **📅 Year:** {movie['year']}  
+        **⭐ Rating:** {movie['rating']}
+        ---
+        """)
